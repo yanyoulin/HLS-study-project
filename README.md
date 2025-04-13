@@ -20,5 +20,9 @@ void sum_array(int in[8], int* out) {
     *out = total;
 }
 ```
-將loop或是function以pipeline的形式結構執行，增加效率
+將loop或是function以pipeline的形式結構執行，增加效率<br>
+![image](https://github.com/yanyoulin/HLS-study-project/blob/main/pics/%E8%9E%A2%E5%B9%95%E6%93%B7%E5%8F%96%E7%95%AB%E9%9D%A2%202025-04-14%20020312.png)
+pipeline讓多個操作分工並行執行，將一段運算「拆解成多個階段」，讓每個clock cycle都能輸入新的資料、產出新的結果<br>
+可以自行設定Initiation Interval(II):啟動新一次迭代所需的clock cycle，若II=1則效率最高<br>
+
 

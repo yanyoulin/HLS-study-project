@@ -81,18 +81,18 @@ void dense_model(int W1[HIDDEN_DIM][IN_DIM], int W2[OUT_DIM][HIDDEN_DIM],
     dense2(W2, h, b2, y);
 }
 ```
-![image]() <br>
+![image](https://github.com/yanyoulin/HLS-study-project/blob/main/pics/dataflow.png) <br>
 
 ## 進入Vitis
 1. 建立一個專案環境，存放你未來建立的component<br>
-![image]() <br>
+![image](https://github.com/yanyoulin/HLS-study-project/blob/main/pics/setworkspace.png) <br>
 2. 可以建立component了<br>
-![image]() <br>
-![image]() <br>
+![image](https://github.com/yanyoulin/HLS-study-project/blob/main/pics/newcomponent.png) <br>
+![image](https://github.com/yanyoulin/HLS-study-project/blob/main/pics/namelocation.png) <br>
 3. 放入你要轉換的cpp檔，以及自己寫的testbench(也可以選擇先跳過)<br>
-![image]() <br>
+![image](https://github.com/yanyoulin/HLS-study-project/blob/main/pics/createcomponentsourcefile.png) <br>
 4. 設定板子環境<br>
-![image]() <br>
+![image](https://github.com/yanyoulin/HLS-study-project/blob/main/pics/selectboard.png) <br>
 5. 這樣就建立完成了<br>
 若跳過第3步，可以在建立完成後再處理(我自己是這樣做)<br>
 ![image]() <br>

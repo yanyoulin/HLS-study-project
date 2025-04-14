@@ -95,11 +95,195 @@ void dense_model(int W1[HIDDEN_DIM][IN_DIM], int W2[OUT_DIM][HIDDEN_DIM],
 ![image](https://github.com/yanyoulin/HLS-study-project/blob/main/pics/selectboard.png) <br>
 5. 這樣就建立完成了<br>
 若跳過第3步，可以在建立完成後再處理(我自己是這樣做)<br>
-![image]() <br>
+![image](https://github.com/yanyoulin/HLS-study-project/blob/main/pics/newsoucefile.png) <br>
 記得設定top function(HLS轉換的單位)<br>
-![image]() <br>
+![image](https://github.com/yanyoulin/HLS-study-project/blob/main/pics/topfunction.png) <br>
 
+## 如何進行-以sum_array為例
+```cpp
+#include "ap_int.h"
 
+void sum_array_unroll(int in[8], int* out) {
+#pragma HLS array_partition variable=in complete
+    int total = 0;
+    for (int i = 0; i < 8; i++) {
+        #pragma HLS UNROLL
+        total += in[i];
+    }
+    *out = total;
+}
+```
+```cpp
+//testbench
+#include <iostream>
+using namespace std;
+
+void sum_array_unroll(int in[8], int* out);
+
+int main() {
+    int in[8] = {1, 2, 3, 4, 5, 6, 7, 8};
+    int result;
+    sum_array_unroll(in, &result);
+    cout << "sum = " << result << endl;
+    if (result == 36) {
+        cout << "PASS" << endl;
+        return 0;
+    } else {
+        cout << "FAIL" << endl;
+        return 1;
+    }
+}
+```
+之後跑 **C Simulation** 看測試的結果，用來檢查程式是否錯誤<br>
+```
+ sum = 36
+ PASS
+ INFO: [SIM 211-1] CSim done with 0 errors.
+ INFO: [SIM 211-3] *************** CSIM finish ***************
+ INFO: [HLS 200-112] Total CPU user time: 2 seconds. Total CPU system time: 1 seconds. Total elapsed time: 7.338 seconds; peak allocated memory: 265.996 MB.
+ INFO: [vitis-run 60-791] Total elapsed time: 0h 0m 12s
+ C-simulation finished successfully
+```
+然後跑 **C Synthesis** 生成verilog code與report<br>
+在syn->report資料夾中有一份你的"檔名_synth.rpt"<br>
+```
+//無unroll版
++ Latency: 
+    * Summary: 
+    +---------+---------+----------+----------+-----+-----+------------------------------------------------+
+    |  Latency (cycles) |  Latency (absolute) |  Interval |                    Pipeline                    |
+    |   min   |   max   |    min   |    max   | min | max |                      Type                      |
+    +---------+---------+----------+----------+-----+-----+------------------------------------------------+
+    |       10|       10|  0.100 us|  0.100 us|    9|    9|  loop auto-rewind stp (delay=1 clock cycles(s))|
+    +---------+---------+----------+----------+-----+-----+------------------------------------------------+
+* Summary: 
++-----------------+---------+------+--------+--------+-----+
+|       Name      | BRAM_18K|  DSP |   FF   |   LUT  | URAM|
++-----------------+---------+------+--------+--------+-----+
+|DSP              |        -|     -|       -|       -|    -|
+|Expression       |        -|     -|       0|      63|    -|
+|FIFO             |        -|     -|       -|       -|    -|
+|Instance         |        -|     -|       -|       -|    -|
+|Memory           |        -|     -|       -|       -|    -|
+|Multiplexer      |        -|     -|       0|      45|    -|
+|Register         |        -|     -|      41|       -|    -|
++-----------------+---------+------+--------+--------+-----+
+|Total            |        0|     0|      41|     108|    0|
++-----------------+---------+------+--------+--------+-----+
+```
+```
+//有unroll版
++ Latency: 
+    * Summary: 
+    +---------+---------+----------+----------+-----+-----+---------+
+    |  Latency (cycles) |  Latency (absolute) |  Interval | Pipeline|
+    |   min   |   max   |    min   |    max   | min | max |   Type  |
+    +---------+---------+----------+----------+-----+-----+---------+
+    |        0|        0|      0 ns|      0 ns|    1|    1|       no|
+    +---------+---------+----------+----------+-----+-----+---------+
+* Summary: 
++-----------------+---------+------+--------+--------+-----+
+|       Name      | BRAM_18K|  DSP |   FF   |   LUT  | URAM|
++-----------------+---------+------+--------+--------+-----+
+|DSP              |        -|     -|       -|       -|    -|
+|Expression       |        -|     -|       0|     245|    -|
+|FIFO             |        -|     -|       -|       -|    -|
+|Instance         |        -|     -|       -|       -|    -|
+|Memory           |        -|     -|       -|       -|    -|
+|Multiplexer      |        -|     -|       -|       -|    -|
+|Register         |        -|     -|       -|       -|    -|
++-----------------+---------+------+--------+--------+-----+
+|Total            |        0|     0|       0|     245|    0|
++-----------------+---------+------+--------+--------+-----+
+```
+從report就能看出，unroll效率明顯提升，但資源使用量明顯較大<br>
+顯示出#pragma的重要性<br>
+我們也可以做 **C/RTL Cosimulation** (硬體正確性驗證)
+
+## Dense Layer
+```cpp
+#include "ap_int.h"
+
+#define IN_DIM  8
+#define OUT_DIM 4
+
+void dense(float W[OUT_DIM][IN_DIM], float x[IN_DIM], float b[OUT_DIM], float y[OUT_DIM]) {
+#pragma HLS array_partition variable=W type=complete
+#pragma HLS array_partition variable=x type=complete
+#pragma HLS array_partition variable=b type=complete
+#pragma HLS array_partition variable=y type=complete
+#pragma HLS PIPELINE II=1
+
+    for (int i = 0; i < OUT_DIM; i++) {
+#pragma HLS UNROLL
+        float acc = b[i];
+        for (int j = 0; j < IN_DIM; j++) {
+#pragma HLS UNROLL
+            acc += W[i][j] * x[j];
+        }
+        y[i] = (acc > 0) ? acc : 0;
+    }
+}
+```
+2 dense layer
+```cpp
+#include "ap_int.h"
+
+#define IN_DIM  8
+#define HIDDEN_DIM 4
+#define OUT_DIM 2
+
+void dense1(int W1[HIDDEN_DIM][IN_DIM], int x[IN_DIM], int b1[HIDDEN_DIM], int h[HIDDEN_DIM]) {
+#pragma HLS array_partition variable=W1 type=complete
+#pragma HLS array_partition variable=x type=complete
+#pragma HLS array_partition variable=b1 type=complete
+#pragma HLS array_partition variable=h type=complete
+#pragma HLS PIPELINE II=1
+
+    for (int i = 0; i < HIDDEN_DIM; i++) {
+#pragma HLS UNROLL
+        int acc = b1[i];
+        for (int j = 0; j < IN_DIM; j++) {
+#pragma HLS UNROLL
+            acc += W1[i][j] * x[j];
+        }
+        if (acc < 0) acc = 0;
+        h[i] = acc;
+    }
+}
+
+void dense2(int W2[OUT_DIM][HIDDEN_DIM], int h[HIDDEN_DIM], int b2[OUT_DIM], int y[OUT_DIM]) {
+#pragma HLS array_partition variable=W2 type=complete
+#pragma HLS array_partition variable=h type=complete
+#pragma HLS array_partition variable=b2 type=complete
+#pragma HLS array_partition variable=y type=complete
+#pragma HLS PIPELINE II=1
+
+    for (int i = 0; i < OUT_DIM; i++) {
+#pragma HLS UNROLL
+        int acc = b2[i];
+        for (int j = 0; j < HIDDEN_DIM; j++) {
+#pragma HLS UNROLL
+            acc += W2[i][j] * h[j];
+        }
+        y[i] = acc;
+    }
+}
+
+void dense_model(int W1[HIDDEN_DIM][IN_DIM], int W2[OUT_DIM][HIDDEN_DIM],
+                 int b1[HIDDEN_DIM], int b2[OUT_DIM], int x[IN_DIM], int y[OUT_DIM]) {
+#pragma HLS DATAFLOW
+    int h[HIDDEN_DIM];
+#pragma HLS array_partition variable=h complete
+
+    dense1(W1, x, b1, h);
+    dense2(W2, h, b2, y);
+}
+```
+將輸入資訊進行線性組合<br>
+每個輸出神經元都連接到所有輸入神經元<br>
+能學到任意線性轉換，適合作為特徵提取、映射與分類器的終端層<br>
+未來可以用在CNN之類的任務上
 
 
 

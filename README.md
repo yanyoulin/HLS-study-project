@@ -60,6 +60,44 @@ void sum_array_unroll(int in[8], int* out) {
 }
 ```
 unroll常與array_partition做使用，因為unroll只是「告訴工具我想要展開」，但是否真的能展開，要看資料能不能同時被取用<br>
+### pragma HLS DATAFLOW
+它能讓多個function、loop在硬體中同時執行，就像是多個pipeline串起來一樣<br>
+經典用法:<br>
+```cpp
+#pragma HLS DATAFLOW
+
+read_input(input_stream, buf);
+compute(buf, result);
+write_output(result, output_stream);
+```
+```cpp
+void dense_model(int W1[HIDDEN_DIM][IN_DIM], int W2[OUT_DIM][HIDDEN_DIM],
+                 int b1[HIDDEN_DIM], int b2[OUT_DIM], int x[IN_DIM], int y[OUT_DIM]) {
+#pragma HLS DATAFLOW
+    int h[HIDDEN_DIM];
+#pragma HLS array_partition variable=h complete
+
+    dense1(W1, x, b1, h);
+    dense2(W2, h, b2, y);
+}
+```
+![image]() <br>
+
+## 進入Vitis
+1. 建立一個專案環境，存放你未來建立的component<br>
+![image]() <br>
+2. 可以建立component了<br>
+![image]() <br>
+![image]() <br>
+3. 放入你要轉換的cpp檔，以及自己寫的testbench(也可以選擇先跳過)<br>
+![image]() <br>
+4. 設定板子環境<br>
+![image]() <br>
+5. 這樣就建立完成了<br>
+若跳過第3步，可以在建立完成後再處理(我自己是這樣做)<br>
+![image]() <br>
+記得設定top function(HLS轉換的單位)<br>
+![image]() <br>
 
 
 

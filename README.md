@@ -334,6 +334,9 @@ void softmax(data_t input[DIM], data_t output[DIM]) {
     }
 }
 ```
+通過計算Q與每個k向量的內積，得到它們的關聯分數<br>
+使用Softmax運算使得score i 轉為總和為1的機率分佈<br>
+幫助模型建立有意義的上下文關係<br>
 
 ## 目標(每周更新)
 **4/15** <br>

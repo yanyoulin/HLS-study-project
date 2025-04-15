@@ -285,6 +285,10 @@ void dense_model(int W1[HIDDEN_DIM][IN_DIM], int W2[OUT_DIM][HIDDEN_DIM],
 能學到任意線性轉換，適合作為特徵提取、映射與分類器的終端層<br>
 未來可以用在CNN之類的任務上
 
-
+## 目標(每周更新)
+**4/15** <br>
+開始朝stable diffusion在vitis上實作前進<br>
+學習實作像hls4ml把model轉換成c++ hls<br>
+思考新方向(如hls4rl, hls4drowness detect)<br>
 
 

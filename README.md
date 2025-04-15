@@ -285,6 +285,56 @@ void dense_model(int W1[HIDDEN_DIM][IN_DIM], int W2[OUT_DIM][HIDDEN_DIM],
 能學到任意線性轉換，適合作為特徵提取、映射與分類器的終端層<br>
 未來可以用在CNN之類的任務上
 
+## Attention Score & Softmax
+```cpp
+#include "ap_fixed.h"
+#include <hls_math.h>
+
+#define DIM 4
+
+typedef ap_fixed<16, 6> data_t;
+
+// ----- Compute Q·K^T -----
+void attention_score(data_t Q[DIM], data_t K[DIM], data_t* score_out) {
+#pragma HLS array_partition variable=Q complete
+#pragma HLS array_partition variable=K complete
+
+    data_t score = 0;
+    for (int i = 0; i < DIM; i++) {
+#pragma HLS UNROLL
+        score += Q[i] * K[i];
+    }
+    *score_out = score;
+}
+
+// ----- Softmax over fixed-length 1D input -----
+void softmax(data_t input[DIM], data_t output[DIM]) {
+#pragma HLS array_partition variable=input complete
+#pragma HLS array_partition variable=output complete
+
+    data_t max_val = input[0];
+    for (int i = 1; i < DIM; i++) {
+#pragma HLS UNROLL
+        if (input[i] > max_val) max_val = input[i];
+    }
+
+    data_t sum = 0;
+    data_t exp_val[DIM];
+#pragma HLS array_partition variable=exp_val complete
+
+    for (int i = 0; i < DIM; i++) {
+#pragma HLS UNROLL
+        exp_val[i] = hls::exp(input[i] - max_val);
+        sum += exp_val[i];
+    }
+
+    for (int i = 0; i < DIM; i++) {
+#pragma HLS UNROLL
+        output[i] = exp_val[i] / sum;
+    }
+}
+```
+
 ## 目標(每周更新)
 **4/15** <br>
 開始朝stable diffusion在vitis上實作前進<br>

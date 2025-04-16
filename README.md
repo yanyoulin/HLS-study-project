@@ -342,6 +342,6 @@ void softmax(data_t input[DIM], data_t output[DIM]) {
 **4/15** <br>
 開始朝stable diffusion在vitis上實作前進<br>
 學習實作像hls4ml把model轉換成c++ hls<br>
-思考新方向(如hls4rl, hls4drowness detect)<br>
+思考新方向(如hls4rl, hls4障礙物偵測)<br>
 
 

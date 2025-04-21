@@ -338,6 +338,191 @@ void softmax(data_t input[DIM], data_t output[DIM]) {
 使用Softmax運算使得score i 轉為總和為1的機率分佈<br>
 幫助模型建立有意義的上下文關係<br>
 
+## Multi_Head_Attention->Transformer Block
+![image](https://github.com/yanyoulin/HLS-study-project/blob/main/pics/multi_head.png) <br>
+```cpp
+void attention_head(
+    data_t Q_proj[HEAD_DIM], data_t K_proj[DIM][HEAD_DIM], data_t V_proj[DIM][HEAD_DIM], data_t out[HEAD_DIM]) {
+#pragma HLS array_partition variable=Q_proj complete
+#pragma HLS array_partition variable=K_proj complete dim=2
+#pragma HLS array_partition variable=V_proj complete dim=2
+#pragma HLS array_partition variable=out complete
+
+    data_t scores[DIM];
+#pragma HLS array_partition variable=scores complete
+
+    for (int i = 0; i < DIM; i++) {
+#pragma HLS UNROLL
+        attention_score(Q_proj, K_proj[i], &scores[i]);
+    }
+
+    data_t weights[DIM];
+    softmax(scores, weights);
+
+    for (int i = 0; i < HEAD_DIM; i++) {
+#pragma HLS UNROLL
+        out[i] = 0;
+        for (int j = 0; j < DIM; j++) {
+#pragma HLS UNROLL
+            out[i] += weights[j] * V_proj[j][i];
+        }
+    }
+}
+
+void multi_head_attention(
+    data_t Q[DIM], data_t K[DIM][DIM], data_t V[DIM][DIM],
+    data_t W_Q[HEADS][HEAD_DIM][DIM],
+    data_t W_K[HEADS][HEAD_DIM][DIM],
+    data_t W_V[HEADS][HEAD_DIM][DIM],
+    data_t W_O[DIM][HEADS * HEAD_DIM],
+    data_t output[DIM]) {
+
+#pragma HLS array_partition variable=Q complete
+#pragma HLS array_partition variable=K complete dim=2
+#pragma HLS array_partition variable=V complete dim=2
+#pragma HLS array_partition variable=W_Q complete dim=2
+#pragma HLS array_partition variable=W_K complete dim=2
+#pragma HLS array_partition variable=W_V complete dim=2
+#pragma HLS array_partition variable=W_O complete dim=2
+#pragma HLS array_partition variable=output complete
+
+    data_t concat_heads[HEADS * HEAD_DIM];
+#pragma HLS array_partition variable=concat_heads complete
+
+    for (int h = 0; h < HEADS; h++) {
+#pragma HLS UNROLL
+        data_t Q_proj[HEAD_DIM], K_proj[DIM][HEAD_DIM], V_proj[DIM][HEAD_DIM];
+        data_t head_out[HEAD_DIM];
+#pragma HLS array_partition variable=Q_proj complete
+#pragma HLS array_partition variable=K_proj complete dim=2
+#pragma HLS array_partition variable=V_proj complete dim=2
+#pragma HLS array_partition variable=head_out complete
+
+        for (int i = 0; i < HEAD_DIM; i++) {
+#pragma HLS UNROLL
+            Q_proj[i] = 0;
+            for (int j = 0; j < DIM; j++) Q_proj[i] += W_Q[h][i][j] * Q[j];
+        }
+        for (int m = 0; m < DIM; m++) {
+            for (int i = 0; i < HEAD_DIM; i++) {
+#pragma HLS UNROLL
+                K_proj[m][i] = 0;
+                for (int j = 0; j < DIM; j++) K_proj[m][i] += W_K[h][i][j] * K[m][j];
+            }
+        }
+        for (int m = 0; m < DIM; m++) {
+            for (int i = 0; i < HEAD_DIM; i++) {
+#pragma HLS UNROLL
+                V_proj[m][i] = 0;
+                for (int j = 0; j < DIM; j++) V_proj[m][i] += W_V[h][i][j] * V[m][j];
+            }
+        }
+
+        attention_head(Q_proj, K_proj, V_proj, head_out);
+
+        for (int i = 0; i < HEAD_DIM; i++) {
+#pragma HLS UNROLL
+            concat_heads[h * HEAD_DIM + i] = head_out[i];
+        }
+    }
+
+    for (int i = 0; i < DIM; i++) {
+#pragma HLS UNROLL
+        output[i] = 0;
+        for (int j = 0; j < HEADS * HEAD_DIM; j++) {
+#pragma HLS UNROLL
+            output[i] += W_O[i][j] * concat_heads[j];
+        }
+    }
+}
+
+```
+
+```cpp
+#include "ap_fixed.h"
+#include <hls_math.h>
+#include "multi_head_attention.h"
+
+#define DIM 4
+#define HEADS 2
+#define HEAD_DIM 2
+#define FF_DIM 4
+
+typedef ap_fixed<16, 6> data_t;
+
+void multi_head_attention(
+    data_t Q[DIM], data_t K[DIM][DIM], data_t V[DIM][DIM],
+    data_t W_Q[HEADS][HEAD_DIM][DIM],
+    data_t W_K[HEADS][HEAD_DIM][DIM],
+    data_t W_V[HEADS][HEAD_DIM][DIM],
+    data_t W_O[DIM][HEADS * HEAD_DIM],
+    data_t output[DIM]);
+
+void dense_ffn(data_t input[DIM], data_t W1[FF_DIM][DIM], data_t b1[FF_DIM],
+               data_t W2[DIM][FF_DIM], data_t b2[DIM], data_t output[DIM]) {
+#pragma HLS array_partition variable=input complete
+#pragma HLS array_partition variable=output complete
+#pragma HLS array_partition variable=W1 complete dim=2
+#pragma HLS array_partition variable=W2 complete dim=2
+#pragma HLS array_partition variable=b1 complete
+#pragma HLS array_partition variable=b2 complete
+
+    data_t hidden[FF_DIM];
+#pragma HLS array_partition variable=hidden complete
+
+    for (int i = 0; i < FF_DIM; i++) {
+#pragma HLS UNROLL
+        hidden[i] = b1[i];
+        for (int j = 0; j < DIM; j++) hidden[i] += W1[i][j] * input[j];
+        if (hidden[i] < 0) hidden[i] = 0;
+    }
+
+    for (int i = 0; i < DIM; i++) {
+#pragma HLS UNROLL
+        output[i] = b2[i];
+        for (int j = 0; j < FF_DIM; j++) output[i] += W2[i][j] * hidden[j];
+    }
+}
+-
+void transformer_block(
+    data_t Q[DIM], data_t K[DIM][DIM], data_t V[DIM][DIM],
+    data_t W_Q[HEADS][HEAD_DIM][DIM],
+    data_t W_K[HEADS][HEAD_DIM][DIM],
+    data_t W_V[HEADS][HEAD_DIM][DIM],
+    data_t W_O[DIM][HEADS * HEAD_DIM],
+    data_t W1[FF_DIM][DIM], data_t b1[FF_DIM],
+    data_t W2[DIM][FF_DIM], data_t b2[DIM],
+    data_t output[DIM]) {
+
+#pragma HLS array_partition variable=Q complete
+#pragma HLS array_partition variable=K complete dim=2
+#pragma HLS array_partition variable=V complete dim=2
+#pragma HLS array_partition variable=output complete
+
+    data_t attn_out[DIM];
+    data_t add1[DIM];
+    data_t ffn_out[DIM];
+#pragma HLS array_partition variable=attn_out complete
+#pragma HLS array_partition variable=add1 complete
+#pragma HLS array_partition variable=ffn_out complete
+
+    multi_head_attention(Q, K, V, W_Q, W_K, W_V, W_O, attn_out);
+
+    for (int i = 0; i < DIM; i++) {
+#pragma HLS UNROLL
+        add1[i] = Q[i] + attn_out[i];
+    }
+
+    dense_ffn(add1, W1, b1, W2, b2, ffn_out);
+
+    for (int i = 0; i < DIM; i++) {
+#pragma HLS UNROLL
+        output[i] = add1[i] + ffn_out[i];
+    }
+}
+
+```
+
 ## 目標(每周更新)
 **4/15** <br>
 開始朝stable diffusion在vitis上實作前進<br>

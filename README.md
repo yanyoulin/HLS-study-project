@@ -437,6 +437,8 @@ void multi_head_attention(
 }
 
 ```
+![image](https://github.com/yanyoulin/HLS-study-project/blob/main/pics/transformer_encoder.png)
+![image](https://github.com/yanyoulin/HLS-study-project/blob/main/pics/feed_forward_network.png)
 
 ```cpp
 #include "ap_fixed.h"

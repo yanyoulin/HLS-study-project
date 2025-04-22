@@ -16,8 +16,7 @@
    - 實作一個簡易的dense layer，可用於FFN或attention
    
 2. **gelu.h / gelu.cpp**
-   - 使用簡易方法描述模擬 GELU：
-     \[ \text{GELU}(x) \approx x \cdot 0.5 \cdot (1 + \tanh(\sqrt{2/\pi}(x + 0.044715 x^3))) \]
+   - 使用簡易方法描述模擬 GELU
 
 3. **layernorm.h / layernorm.cpp**
    - 實作Layer Normalization的簡化版，按平均數與方差做標準化，尚未加入scale/shift

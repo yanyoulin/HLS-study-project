@@ -524,6 +524,18 @@ void transformer_block(
 }
 
 ```
+Multi-Head Attention<br>
+每個head執行比例化點積attention（Scaled Dot-Product Attention）：<br>
+分數計算： score=Q·K^T<br>
+Softmax正規化<br>
+與值矩陣V的加權和<br>
+多個注意力頭的輸出會串接後送入線性投影層<br>
+<br>
+Feed-Forward Network(FFN）<br>
+包含兩層Dense Layer與ReLU激活函數：<br>
+FFN(x)=max(0, W1x + b1)W2 + b2<br>
+成功實作一個HLS可合成的Transformer Block<br>
+
 
 ## 目標(每周更新)
 **4/15** <br>

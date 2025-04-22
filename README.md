@@ -537,10 +537,23 @@ FFN(x)=max(0, W1x + b1)W2 + b2<br>
 成功實作一個HLS可合成的Transformer Block<br>
 
 
-## 目標(每周更新)
+## 目標 & 進度(每周更新)
 **4/15** <br>
 開始朝stable diffusion在vitis上實作前進<br>
 學習實作像hls4ml把model轉換成c++ hls<br>
 思考新方向(如hls4rl, hls4障礙物偵測)<br>
+**4/22**<br>
+已完成一個transformer encoder block project的實作<br>
+包含:<br>
+dense layer(測試成功)<br>
+layer normalization(測試成功)<br>
+gelu(測試成功)<br>
+residual normalization(測試成功)<br>
+multi-head attention(測試成功)<br>
+最後整合到transformer encoder block達成圖示的目的<br>
+測試完成將把所有結果更新至github<br>
+可以以這個架構試著朝新主題式著發展了<br>
+可繼續往 Stable Diffusion、Edge AI 模型移植與加速方向發展<br>
+
 
 

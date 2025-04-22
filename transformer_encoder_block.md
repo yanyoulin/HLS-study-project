@@ -47,7 +47,7 @@
 | `gelu.cpp` | non-linear activation |
 | `layernorm.cpp` | 標準化輸入 |
 | `multi_head_attention.cpp` | 將多機組的 attention 封裝 |
-| `residual_norm.cpp` | 封裝 skip connection + LayerNorm |
+| `residual_norm.cpp` | 封裝 residual + LayerNorm |
 
 ---
 
@@ -68,13 +68,13 @@
 
 - 我們成功將 Transformer Encoder Block 以 HLS 轉成 RTL
 - 通過 Vitis HLS 執行 csim, csyn, cosim全準
-- 各個單元 (dense, gelu, attention, norm) 均有獨立 testbench 驗證
+- 各個單元 (dense, gelu, attention, norm) 均有獨立testbench驗證(csim)
 
 ---
 
 ### 六、結論
 
-我們將 Transformer Encoder Block 作為根基組件作為前篇，爲下一步 Stable Diffusion / LLM 的系統安裝做好基礎。
+我們將 Transformer Encoder Block 作為根基組件作為前篇，為下一步 Stable Diffusion / LLM 的系統安裝做好基礎。
 
 意義在於實際執行 Transformer 分段功能以轉成硬體 IP，並簡化了後續大型 AI 機組作業的展開。
 

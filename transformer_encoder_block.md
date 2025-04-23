@@ -78,3 +78,11 @@
 
 意義在於實際執行 Transformer 分段功能以轉成硬體 IP，並簡化了後續大型 AI 機組作業的展開。
 
+---
+
+### 參考資料
+[Multi Head Attention](https://andy6804tw.github.io/2021/05/03/ntu-multi-head-self-attention/)  
+[GELU](https://blog.csdn.net/weixin_38190702/article/details/125670188)  
+[Layer Normalization](https://www.cnblogs.com/xiaxuexiaoab/p/18325271)  
+[Transformer Encoder Block](https://zhuanlan.zhihu.com/p/338817680)  
+
